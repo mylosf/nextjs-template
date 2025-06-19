@@ -6,7 +6,7 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between">
         <div className="space-x-4">
           <Link href="/" className="text-gray-700 hover:text-black">
-            Home
+            {{page1_component1_text1}}
           </Link>
           <Link href="/dashboard" className="text-gray-700 hover:text-black">
             Dashboard
