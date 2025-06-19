@@ -1,0 +1,151 @@
+name: Update Template Layer
+
+on:
+  workflow_dispatch:
+    inputs:
+      template_repo:
+        description: 'Template repository (owner/repo)'
+        required: true
+        default: 'mylosf/nextjs-template'
+      template_ref:
+        description: 'Template repository ref (branch/tag/commit)'
+        required: true
+        default: 'main'
+  
+  # Optionally run on a schedule to keep template updated
+  # schedule:
+  #   - cron: '0 6 * * 1'  # Every Monday at 6 AM
+
+env:
+  AWS_REGION: eu-central-1  # Your AWS region
+
+jobs:
+  update-template-layer:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read    # Required to checkout repository
+    
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+      
+      - name: Checkout template repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.template_repo }}
+          ref: ${{ github.event.inputs.template_ref }}
+          path: template-repo
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Prepare template for Lambda Layer
+        run: |
+          # Create layer structure
+          mkdir -p layer-package/template-repo
+          
+          # Copy template repository to layer
+          cp -r template-repo/* layer-package/template-repo/
+          
+          # Remove .git and other unnecessary files
+          find layer-package -name ".git" -type d -exec rm -rf {} + 2>/dev/null || true
+          find layer-package -name ".github" -type d -exec rm -rf {} + 2>/dev/null || true
+          find layer-package -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
+          find layer-package -name "*.log" -delete 2>/dev/null || true
+          
+          # Create ZIP for Lambda Layer
+          cd layer-package
+          zip -r ../template-layer.zip . -x "*.git*" "*.DS_Store*"
+          cd ..
+          
+          echo "Layer ZIP size: $(du -h template-layer.zip | cut -f1)"
+          
+      - name: Get Lambda function info
+        id: lambda-info
+        run: |
+          # Get the Lambda function name
+          FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?contains(FunctionName, 'JSONProcessorFunction')].FunctionName" --output text)
+          echo "function-name=$FUNCTION_NAME" >> $GITHUB_OUTPUT
+          
+          # Get the layer name from the existing layer (CDK managed)
+          if [ -n "$FUNCTION_NAME" ]; then
+            CURRENT_LAYER_ARN=$(aws lambda get-function --function-name $FUNCTION_NAME --query "Configuration.Layers[?contains(LayerArn, 'template-repo-layer')].LayerArn" --output text)
+            echo "current-layer-arn=$CURRENT_LAYER_ARN" >> $GITHUB_OUTPUT
+            
+            # Extract layer name from ARN
+            LAYER_NAME=$(echo $CURRENT_LAYER_ARN | cut -d':' -f7)
+            echo "layer-name=$LAYER_NAME" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Publish new Lambda Layer version
+        id: layer
+        run: |
+          LAYER_NAME="${{ steps.lambda-info.outputs.layer-name }}"
+          
+          if [ -z "$LAYER_NAME" ]; then
+            echo "❌ Layer name not found. Make sure CDK stack is deployed."
+            exit 1
+          fi
+          
+          LAYER_ARN=$(aws lambda publish-layer-version \
+            --layer-name "$LAYER_NAME" \
+            --description "Template repository - mylosf/nextjs-template@${{ github.event.inputs.template_ref }} - Updated $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --zip-file fileb://template-layer.zip \
+            --compatible-runtimes nodejs18.x \
+            --query "LayerVersionArn" \
+            --output text)
+          
+          echo "layer-arn=$LAYER_ARN" >> $GITHUB_OUTPUT
+          echo "✅ Published new layer version: $LAYER_ARN"
+          
+      - name: Update Lambda function to use new layer
+        run: |
+          FUNCTION_NAME="${{ steps.lambda-info.outputs.function-name }}"
+          NEW_LAYER_ARN="${{ steps.layer.outputs.layer-arn }}"
+          
+          if [ -n "$FUNCTION_NAME" ] && [ -n "$NEW_LAYER_ARN" ]; then
+            echo "Updating Lambda function $FUNCTION_NAME with new layer $NEW_LAYER_ARN"
+            
+            aws lambda update-function-configuration \
+              --function-name $FUNCTION_NAME \
+              --layers $NEW_LAYER_ARN \
+              --query "Layers[0].Arn" \
+              --output text
+              
+            echo "✅ Lambda function updated successfully"
+          else
+            echo "❌ Could not update Lambda function - missing function name or layer ARN"
+            exit 1
+          fi
+          
+      - name: Clean up old layer versions (keep last 5)
+        run: |
+          echo "Cleaning up old layer versions..."
+          aws lambda list-layer-versions \
+            --layer-name template-repo-layer \
+            --query "LayerVersions[5:].Version" \
+            --output text | tr '\t' '\n' | while read version; do
+            if [ -n "$version" ]; then
+              echo "Deleting layer version $version"
+              aws lambda delete-layer-version \
+                --layer-name template-repo-layer \
+                --version-number $version || true
+            fi
+          done
+          
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Template Layer Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Template Repository:** ${{ github.event.inputs.template_repo }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Template Ref:** ${{ github.event.inputs.template_ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Layer ARN:** ${{ steps.layer.outputs.layer-arn }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lambda Function:** ${{ steps.lambda-info.outputs.function-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Template layer updated successfully!" 
