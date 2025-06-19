@@ -17,7 +17,7 @@ export function Hero() {
           
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6">
-            Build Something
+            {{page1_component2_text2}}
             <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Extraordinary
             </span>
