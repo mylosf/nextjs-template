@@ -74,11 +74,18 @@ jobs:
           
           # Get the layer name from the existing layer (CDK managed)
           if [ -n "$FUNCTION_NAME" ]; then
-            CURRENT_LAYER_ARN=$(aws lambda get-function --function-name $FUNCTION_NAME --query "Configuration.Layers[?contains(LayerArn, 'template-repo-layer')].LayerArn" --output text)
+            # Get all layers and filter for template-repo-layer
+            CURRENT_LAYER_ARN=$(aws lambda get-function --function-name $FUNCTION_NAME --query "Configuration.Layers[?LayerArn != null] | [?contains(LayerArn, 'template-repo-layer')].LayerArn" --output text)
             echo "current-layer-arn=$CURRENT_LAYER_ARN" >> $GITHUB_OUTPUT
             
-            # Extract layer name from ARN
-            LAYER_NAME=$(echo $CURRENT_LAYER_ARN | cut -d':' -f7)
+            # If no layer found, use the default layer name
+            if [ -z "$CURRENT_LAYER_ARN" ]; then
+              LAYER_NAME="template-repo-layer"
+              echo "No existing layer found, using default: $LAYER_NAME"
+            else
+              # Extract layer name from ARN
+              LAYER_NAME=$(echo $CURRENT_LAYER_ARN | cut -d':' -f7)
+            fi
             echo "layer-name=$LAYER_NAME" >> $GITHUB_OUTPUT
           fi
           
