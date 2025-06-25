@@ -1,15 +1,11 @@
-import { Navbar } from '@/components/navbar/navbar'
-import { Hero } from '@/components/hero/hero'
-import { Features } from '@/components/features/features'
-import { Footer } from '@/components/footer/footer'
+import { Navbar } from '@/components/sections/navbar/navbar'
+import { Hero } from '@/components/sections/hero/hero'
 
 export default function Home() {
   return (
     <div>
       <Navbar />
       <Hero />
-      <Features />
-      <Footer />
     </div>
   )
 }
