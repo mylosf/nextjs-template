@@ -1,7 +1,10 @@
+"use client"
+
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/sections/header/page-header"
+import { useRouter } from "next/navigation"
 
 const projects = [
   {
@@ -21,6 +24,7 @@ const projects = [
 ]
 
 export default function ProjectsPage() {
+  const router = useRouter();
   return (
     <div className="relative min-h-screen">
       <PageHeader />
@@ -55,6 +59,7 @@ export default function ProjectsPage() {
           variant="outline" 
           size="lg"
           className="border-red-300 text-red-300 hover:bg-red-300 hover:text-black"
+          onClick={() => router.push('/create')}
         >
           Create more magic
         </Button>
