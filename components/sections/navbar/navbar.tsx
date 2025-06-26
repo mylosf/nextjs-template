@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Menu, X } from "lucide-react"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -33,6 +33,8 @@ const features = [
 ]
 
 export function Navbar() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+
   return (
     <nav className="w-full bg-black">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,35 +46,12 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Navigation Menu */}
-          <NavigationMenu className="[&_.navigation-menu-trigger]:bg-black [&_.navigation-menu-trigger]:text-white [&_.navigation-menu-trigger]:hover:bg-gray-800 [&_.navigation-menu-trigger]:hover:text-white">
+          {/* Desktop Navigation Menu */}
+          <NavigationMenu className="hidden md:block [&_.navigation-menu-trigger]:bg-black [&_.navigation-menu-trigger]:text-white [&_.navigation-menu-trigger]:hover:bg-gray-800 [&_.navigation-menu-trigger]:hover:text-white">
             <NavigationMenuList className="space-x-4">
               <NavigationMenuItem>
                 <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                  <Link href="/" className="bg-black text-white hover:bg-gray-800 hover:text-white">Home</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="bg-black text-white hover:bg-gray-800 hover:text-white">Features</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[300px] gap-2 p-2 bg-black">
-                    {features.map((feature) => (
-                      <ListItem
-                        key={feature.title}
-                        title={feature.title}
-                        href={feature.href}
-                      >
-                        {feature.description}
-                      </ListItem>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                  <Link href="/docs" className="bg-black text-white hover:bg-gray-800 hover:text-white">Docs</Link>
+                  <Link href="/" className="bg-black text-white hover:bg-gray-800 hover:text-white">What is this?</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               
@@ -81,17 +60,66 @@ export function Navbar() {
                   <Link href="/about" className="bg-black text-white hover:bg-gray-800 hover:text-white">About</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                  <Link href="/docs" className="bg-black text-white hover:bg-gray-800 hover:text-white">Docs</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
 
           {/* CTA Button */}
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="hidden sm:flex">
               drop your hate
               <ArrowUpRight className="ml-1 h-4 w-4" />
             </Button>
+            
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-white hover:bg-gray-800 rounded-md"
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-700">
+            <div className="flex flex-col space-y-4">
+              <Link 
+                href="/" 
+                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                What is this?
+              </Link>
+              <Link 
+                href="/about" 
+                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                About
+              </Link>
+              <Link 
+                href="/docs" 
+                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Docs
+              </Link>
+              <div className="pt-4">
+                <Button variant="outline" size="sm" className="w-full">
+                  drop your hate
+                  <ArrowUpRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )
