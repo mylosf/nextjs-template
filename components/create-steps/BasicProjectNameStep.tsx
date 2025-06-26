@@ -10,7 +10,7 @@ interface Props {
   canProceed: boolean
 }
 
-export default function BasicProjectNameStep({ projectName, onChange, onNext, canProceed }: Props) {
+function BasicProjectNameStep({ projectName, onChange, onNext, canProceed }: Props) {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && projectName.trim().length > 0) onNext()
   }
@@ -39,3 +39,5 @@ export default function BasicProjectNameStep({ projectName, onChange, onNext, ca
     </div>
   )
 }
+
+export default BasicProjectNameStep; 
