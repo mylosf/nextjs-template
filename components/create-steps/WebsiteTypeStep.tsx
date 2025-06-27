@@ -33,7 +33,7 @@ export default function WebsiteTypeStep({ isWebApp, onChange, onNext, canProceed
         <div className="flex gap-4 mb-6">
           <Card 
             className={`cursor-pointer transition-all duration-200 flex-1 ring-1 ring-white bg-black rounded-xl ${
-              isWebApp === false ? 'ring-2' : 'hover:bg-gray-800'
+              isWebApp === false ? 'ring-4' : 'hover:bg-gray-800'
             }`}
             onClick={() => onChange(false)}
           >
@@ -45,7 +45,7 @@ export default function WebsiteTypeStep({ isWebApp, onChange, onNext, canProceed
           </Card>
           <Card 
             className={`cursor-pointer transition-all duration-200 flex-1 ring-1 ring-white bg-black rounded-xl ${
-              isWebApp === true ? 'ring-2' : 'hover:bg-gray-800'
+              isWebApp === true ? 'ring-4' : 'hover:bg-gray-800'
             }`}
             onClick={() => onChange(true)}
           >
