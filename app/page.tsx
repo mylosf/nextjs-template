@@ -16,9 +16,9 @@ export default function Home() {
           variant="outline" 
           size="lg"
           className="border-blue-300 text-blue-300 hover:bg-blue-300 hover:text-black"
-          onClick={() => router.push('/projects')}
+          onClick={() => router.push('/early')}
         >
-          Start inventing
+          Get early access
         </Button>
       </div>
     </div>

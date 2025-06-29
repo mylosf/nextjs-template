@@ -39,7 +39,11 @@ export function Navbar() {
     <nav className="w-full bg-black">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo/Brand */}
+          {/* Left side - empty for balance */}
+          <div className="flex items-center space-x-2">
+          </div>
+
+          {/* Logo/Brand - Centered */}
           <div className="flex items-center space-x-2">
             <Link href="/" className="text-lg font-semibold">
               aura.
@@ -47,7 +51,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop Navigation Menu */}
-          <NavigationMenu className="hidden md:block [&_.navigation-menu-trigger]:bg-black [&_.navigation-menu-trigger]:text-white [&_.navigation-menu-trigger]:hover:bg-gray-800 [&_.navigation-menu-trigger]:hover:text-white">
+          {/* <NavigationMenu className="hidden md:block [&_.navigation-menu-trigger]:bg-black [&_.navigation-menu-trigger]:text-white [&_.navigation-menu-trigger]:hover:bg-gray-800 [&_.navigation-menu-trigger]:hover:text-white">
             <NavigationMenuList className="space-x-4">
               <NavigationMenuItem>
                 <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
@@ -67,14 +71,14 @@ export function Navbar() {
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
-          </NavigationMenu>
+          </NavigationMenu> */}
 
           {/* CTA Button */}
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
+            {/* <Button variant="outline" size="sm" className="hidden sm:flex">
               drop your hate
               <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Button>
+            </Button> */}
             
             {/* Mobile Menu Button */}
             <button
@@ -90,33 +94,7 @@ export function Navbar() {
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-700">
             <div className="flex flex-col space-y-4">
-              <Link 
-                href="/" 
-                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                What is this?
-              </Link>
-              <Link 
-                href="/about" 
-                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                About
-              </Link>
-              <Link 
-                href="/docs" 
-                className="text-white hover:bg-gray-800 px-4 py-2 rounded-md"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Docs
-              </Link>
-              <div className="pt-4">
-                <Button variant="outline" size="sm" className="w-full">
-                  drop your hate
-                  <ArrowUpRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
+              {/* Mobile menu is now empty */}
             </div>
           </div>
         )}

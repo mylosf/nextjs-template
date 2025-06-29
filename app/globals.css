@@ -57,3 +57,22 @@
     color: var(--color-main);
   }
 } 
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+@keyframes spin-y {
+  to {
+    transform: rotateY(360deg);
+  }
+}
+.animate-spin-y {
+  animation: spin-y 2s linear infinite;
+  transform-style: preserve-3d;
+} 
