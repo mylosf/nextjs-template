@@ -2,29 +2,57 @@ import React, { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Upload } from 'lucide-react'
 
+interface MediaMetadata {
+  uploaded: boolean
+  fileName?: string
+  fileSize?: number
+  width?: number
+  height?: number
+  mimeType?: string
+}
+
 interface Props {
   onNext: () => void
   onBack?: () => void
-  setData?: (data: { logo: string | null, favicon: string | null }) => void
+  setData?: (data: { logo: MediaMetadata, favicon: MediaMetadata }) => void
 }
 
 export default function AddMediaStep({ onNext, onBack, setData }: Props) {
   const [logo, setLogo] = useState<string | null>(null)
   const [favicon, setFavicon] = useState<string | null>(null)
+  const [logoMetadata, setLogoMetadata] = useState<MediaMetadata>({ uploaded: false })
+  const [faviconMetadata, setFaviconMetadata] = useState<MediaMetadata>({ uploaded: false })
   const logoInputRef = useRef<HTMLInputElement>(null)
   const faviconInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void, metadataSetter: (metadata: MediaMetadata) => void) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onload = ev => setter(ev.target?.result as string)
+      reader.onload = ev => {
+        const result = ev.target?.result as string
+        setter(result)
+        
+        // Get image dimensions
+        const img = new Image()
+        img.onload = () => {
+          metadataSetter({
+            uploaded: true,
+            fileName: file.name,
+            fileSize: file.size,
+            width: img.width,
+            height: img.height,
+            mimeType: file.type
+          })
+        }
+        img.src = result
+      }
       reader.readAsDataURL(file)
     }
   }
 
   function handleNext() {
-    setData?.({ logo, favicon })
+    setData?.({ logo: logoMetadata, favicon: faviconMetadata })
     onNext()
   }
 
@@ -52,8 +80,15 @@ export default function AddMediaStep({ onNext, onBack, setData }: Props) {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => handleFileChange(e, setLogo)}
+              onChange={e => handleFileChange(e, setLogo, setLogoMetadata)}
             />
+            {logoMetadata.uploaded && (
+              <div className="text-sm text-gray-400">
+                <div>{logoMetadata.fileName}</div>
+                <div>{logoMetadata.width} × {logoMetadata.height}</div>
+                <div>{(logoMetadata.fileSize! / 1024).toFixed(1)} KB</div>
+              </div>
+            )}
           </div>
         </div>
         <div>
@@ -75,8 +110,15 @@ export default function AddMediaStep({ onNext, onBack, setData }: Props) {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => handleFileChange(e, setFavicon)}
+              onChange={e => handleFileChange(e, setFavicon, setFaviconMetadata)}
             />
+            {faviconMetadata.uploaded && (
+              <div className="text-sm text-gray-400">
+                <div>{faviconMetadata.fileName}</div>
+                <div>{faviconMetadata.width} × {faviconMetadata.height}</div>
+                <div>{(faviconMetadata.fileSize! / 1024).toFixed(1)} KB</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
