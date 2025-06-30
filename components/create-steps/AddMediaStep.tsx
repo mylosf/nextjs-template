@@ -4,9 +4,11 @@ import { Upload } from 'lucide-react'
 
 interface Props {
   onNext: () => void
+  onBack?: () => void
+  setData?: (data: { logo: string | null, favicon: string | null }) => void
 }
 
-export default function AddMediaStep({ onNext }: Props) {
+export default function AddMediaStep({ onNext, onBack, setData }: Props) {
   const [logo, setLogo] = useState<string | null>(null)
   const [favicon, setFavicon] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -19,6 +21,11 @@ export default function AddMediaStep({ onNext }: Props) {
       reader.onload = ev => setter(ev.target?.result as string)
       reader.readAsDataURL(file)
     }
+  }
+
+  function handleNext() {
+    setData?.({ logo, favicon })
+    onNext()
   }
 
   return (
@@ -73,8 +80,9 @@ export default function AddMediaStep({ onNext }: Props) {
           </div>
         </div>
       </div>
-      <div className="flex justify-end">
-        <Button onClick={onNext}>Next</Button>
+      <div className="flex justify-between">
+        {onBack && <Button variant="ghost" onClick={onBack}>Back</Button>}
+        <Button onClick={handleNext}>Next</Button>
       </div>
     </div>
   )

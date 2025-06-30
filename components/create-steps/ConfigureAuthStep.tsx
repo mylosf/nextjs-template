@@ -21,10 +21,11 @@ const AUTH_PROVIDERS = [
 
 interface Props {
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
+  setData?: (data: any) => void;
 }
 
-export default function ConfigureAuthStep({ onNext, onBack }: Props) {
+export default function ConfigureAuthStep({ onNext, onBack, setData }: Props) {
   const [selected, setSelected] = useState<string[]>(["password"]);
 
   const handleToggle = (value: string) => {
@@ -171,6 +172,11 @@ export default function ConfigureAuthStep({ onNext, onBack }: Props) {
     ),
   ];
 
+  function handleNext() {
+    setData?.({ providers: selected });
+    onNext();
+  }
+
   return (
     <div className="flex gap-8 w-full max-w-4xl mx-auto">
       {/* Left: MultiSelect, always vertically centered */}
@@ -188,10 +194,10 @@ export default function ConfigureAuthStep({ onNext, onBack }: Props) {
               </label>
             ))}
           </div>
-          <Button onClick={onNext} className="w-full mt-2" size="lg">
-            Continue
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="flex justify-between mt-8">
+            {onBack && <Button variant="ghost" onClick={onBack}>Back</Button>}
+            <Button onClick={handleNext}>Continue</Button>
+          </div>
         </div>
       </div>
       {/* Right: Auth Card Carousel */}

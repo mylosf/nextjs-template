@@ -6,9 +6,10 @@ import { Trash2, Plus } from 'lucide-react';
 interface Props {
   onNext: () => void;
   onBack: () => void;
+  setData?: (data: any) => void;
 }
 
-export default function AddHostingStep({ onNext, onBack }: Props) {
+export default function AddHostingStep({ onNext, onBack, setData }: Props) {
   const [domains, setDomains] = useState<string[]>([]);
   const [input, setInput] = useState('');
 
@@ -28,6 +29,11 @@ export default function AddHostingStep({ onNext, onBack }: Props) {
     if (e.key === 'Enter') {
       handleAddDomain();
     }
+  }
+
+  function handleContinue() {
+    setData?.(domains)
+    onNext()
   }
 
   return (
@@ -60,7 +66,7 @@ export default function AddHostingStep({ onNext, onBack }: Props) {
       )}
       <div className="flex justify-between mt-8">
         <Button variant="ghost" onClick={onBack}>Back</Button>
-        <Button onClick={onNext}>Continue</Button>
+        <Button onClick={handleContinue}>Continue</Button>
       </div>
     </div>
   );

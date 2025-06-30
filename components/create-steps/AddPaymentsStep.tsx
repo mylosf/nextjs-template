@@ -22,9 +22,10 @@ const PAYMENT_METHODS = [
 interface Props {
   onNext: () => void;
   onBack: () => void;
+  setData?: (data: any) => void;
 }
 
-export default function AddPaymentsStep({ onNext, onBack }: Props) {
+export default function AddPaymentsStep({ onNext, onBack, setData }: Props) {
   const [selected, setSelected] = useState<string[]>(["credit_card"]);
 
   const handleToggle = (value: string) => {
@@ -32,6 +33,11 @@ export default function AddPaymentsStep({ onNext, onBack }: Props) {
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
     );
   };
+
+  const handleContinue = () => {
+    setData?.(selected)
+    onNext()
+  }
 
   // Example variants for the checkout card
   const cardVariants = [
@@ -220,7 +226,7 @@ export default function AddPaymentsStep({ onNext, onBack }: Props) {
               );
             })}
           </div>
-          <Button onClick={onNext} className="w-full mt-2" size="lg">
+          <Button onClick={handleContinue} className="w-full mt-2" size="lg">
             Continue
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

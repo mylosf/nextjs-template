@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 interface Props {
   onNext: () => void
   onBack: () => void
+  setData?: (data: any) => void
 }
 
 const predefinedUseCases = [
@@ -15,7 +16,7 @@ const predefinedUseCases = [
   'Terms & Services'
 ]
 
-export default function AddStorageStep({ onNext, onBack }: Props) {
+export default function AddStorageStep({ onNext, onBack, setData }: Props) {
   const [showConfig, setShowConfig] = useState(false)
   const [selectedUseCases, setSelectedUseCases] = useState<string[]>([])
   const [customUseCase, setCustomUseCase] = useState('')
@@ -48,7 +49,7 @@ export default function AddStorageStep({ onNext, onBack }: Props) {
   }
 
   const handleContinue = () => {
-    // Here you could save the selected use cases to your form state
+    setData?.(selectedUseCases)
     onNext()
   }
 

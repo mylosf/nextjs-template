@@ -46,9 +46,20 @@ function useIsMobile() {
 
 export default function CreatePage() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [projectName, setProjectName] = useState('')
-  const [isWebApp, setIsWebApp] = useState<boolean | null>(null)
-  const [description, setDescription] = useState('')
+  const [formData, setFormData] = useState({
+    projectName: '',
+    isWebApp: null as boolean | null,
+    description: '',
+    media: {},
+    design: {},
+    auth: {},
+    pricing: {},
+    payments: {},
+    sitemap: {},
+    storage: {},
+    database: {},
+    hosting: {},
+  });
   const isMobile = useIsMobile()
 
   // Navigation
@@ -56,9 +67,20 @@ export default function CreatePage() {
   const goBack = () => setCurrentStep(s => Math.max(s - 1, 0))
   const restart = () => {
     setCurrentStep(0)
-    setProjectName('')
-    setIsWebApp(null)
-    setDescription('')
+    setFormData({
+      projectName: '',
+      isWebApp: null,
+      description: '',
+      media: {},
+      design: {},
+      auth: {},
+      pricing: {},
+      payments: {},
+      sitemap: {},
+      storage: {},
+      database: {},
+      hosting: {},
+    })
   }
 
   // Render step
@@ -67,63 +89,63 @@ export default function CreatePage() {
     case 0:
       stepComponent = (
         <BasicProjectNameStep
-          projectName={projectName}
-          onChange={setProjectName}
+          projectName={formData.projectName}
+          onChange={val => setFormData(f => ({ ...f, projectName: val }))}
           onNext={goNext}
-          canProceed={projectName.trim().length > 0}
+          canProceed={formData.projectName.trim().length > 0}
         />
       )
       break
     case 1:
       stepComponent = (
         <WebsiteTypeStep
-          isWebApp={isWebApp}
-          onChange={setIsWebApp}
+          isWebApp={formData.isWebApp}
+          onChange={val => setFormData(f => ({ ...f, isWebApp: val }))}
           onNext={goNext}
-          canProceed={isWebApp !== null}
+          canProceed={formData.isWebApp !== null}
         />
       )
       break
     case 2:
       stepComponent = (
         <ProjectDescriptionStep
-          isWebApp={isWebApp}
-          description={description}
-          onChange={setDescription}
+          isWebApp={formData.isWebApp}
+          description={formData.description}
+          onChange={val => setFormData(f => ({ ...f, description: val }))}
           onNext={goNext}
-          canProceed={description.trim().length > 0}
+          canProceed={formData.description.trim().length > 0}
         />
       )
       break
     case 3:
-      stepComponent = <AddMediaStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddMediaStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, media: data }))} />
       break
     case 4:
-      stepComponent = <ChooseDesignStep onNext={goNext} onBack={goBack} />
+      stepComponent = <ChooseDesignStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, design: data }))} />
       break
     case 5:
-      stepComponent = <ConfigureAuthStep onNext={goNext} onBack={goBack} />
+      stepComponent = <ConfigureAuthStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, auth: data }))} />
       break
     case 6:
-      stepComponent = <ConfigurePricingStep onNext={goNext} onBack={goBack} />
+      stepComponent = <ConfigurePricingStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, pricing: data }))} />
       break
     case 7:
-      stepComponent = <AddPaymentsStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddPaymentsStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, payments: data }))} />
       break
     case 8:
-      stepComponent = <SitemapBuilderStep onNext={goNext} onBack={goBack} />
+      stepComponent = <SitemapBuilderStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, sitemap: data }))} />
       break
     case 9:
-      stepComponent = <AddStorageStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddStorageStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, storage: data }))} />
       break
     case 10:
-      stepComponent = <AddDatabaseStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddDatabaseStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, database: data }))} />
       break
     case 11:
-      stepComponent = <AddHostingStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddHostingStep onNext={goNext} onBack={goBack} setData={data => setFormData(f => ({ ...f, hosting: data }))} />
       break
     case 12:
-      stepComponent = <SetupCompleteStep onRestart={restart} />
+      stepComponent = <SetupCompleteStep onRestart={restart} formData={formData} />
       break
     default:
       stepComponent = null

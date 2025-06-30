@@ -23,6 +23,7 @@ import '@xyflow/react/dist/style.css';
 interface Props {
   onNext: () => void;
   onBack: () => void;
+  setData?: (data: any) => void;
 }
 
 interface Section {
@@ -39,7 +40,7 @@ interface PageNode {
   sections: Section[];
 }
 
-export default function SitemapBuilderStep({ onNext, onBack }: Props) {
+export default function SitemapBuilderStep({ onNext, onBack, setData }: Props) {
   const [pages, setPages] = useState<PageNode[]>([
     { 
       id: 'home', 
@@ -399,6 +400,11 @@ export default function SitemapBuilderStep({ onNext, onBack }: Props) {
     setEdges((prev: Edge[]) => prev.filter((edge: Edge) => edge.source !== pageId && edge.target !== pageId));
   };
 
+  const handleContinue = () => {
+    setData?.(pages)
+    onNext()
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="h-[600px] relative">
@@ -514,7 +520,7 @@ export default function SitemapBuilderStep({ onNext, onBack }: Props) {
 
           {/* Continue Button Panel */}
           <Panel position="bottom-right">
-            <Button onClick={onNext} size="lg">
+            <Button onClick={handleContinue} size="lg">
               Continue
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

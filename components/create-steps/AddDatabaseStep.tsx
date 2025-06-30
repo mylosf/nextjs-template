@@ -188,7 +188,7 @@ const initialNodes: Node[] = [
   },
 ];
 
-export default function AddDatabaseStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+export default function AddDatabaseStep({ onNext, onBack, setData }: { onNext: () => void; onBack: () => void; setData?: (data: any) => void }) {
   const [tables, setTables] = useState<TableData[]>(initialTables);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -329,6 +329,11 @@ export default function AddDatabaseStep({ onNext, onBack }: { onNext: () => void
     tableNode: (props: any) => <TableNode {...props} />
   }), []);
 
+  const handleContinue = () => {
+    setData?.({ tables, edges })
+    onNext()
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto h-[600px] flex flex-col">
       <h2 className="text-2xl font-semibold mb-4">Database Schema</h2>
@@ -407,7 +412,7 @@ export default function AddDatabaseStep({ onNext, onBack }: { onNext: () => void
       </div>
       <div className="flex justify-between mt-4">
         <Button variant="ghost" onClick={onBack}>Back</Button>
-        <Button onClick={onNext}>Continue</Button>
+        <Button onClick={handleContinue}>Continue</Button>
       </div>
     </div>
   );

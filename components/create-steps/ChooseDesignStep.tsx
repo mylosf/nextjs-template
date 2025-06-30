@@ -51,9 +51,10 @@ function randomPalette() {
 interface Props {
   onNext: () => void;
   onBack?: () => void;
+  setData?: (data: any) => void;
 }
 
-export default function ChooseDesignStep({ onNext, onBack }: Props) {
+export default function ChooseDesignStep({ onNext, onBack, setData }: Props) {
   const [palettes, setPalettes] = useState(PALETTES)
   const [selected, setSelected] = useState(palettes[0].hex)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
@@ -234,7 +235,7 @@ export default function ChooseDesignStep({ onNext, onBack }: Props) {
       </ResizablePanelGroup>
       <div className="flex justify-end mt-8 gap-2">
         {onBack && <Button variant="ghost" onClick={onBack}>Back</Button>}
-        <Button onClick={onNext} disabled={!selected}>Continue</Button>
+        <Button onClick={() => { onNext(); if (setData) setData(palettes); }} disabled={!selected}>Continue</Button>
       </div>
     </div>
   )

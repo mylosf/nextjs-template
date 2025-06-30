@@ -12,6 +12,7 @@ interface PricingCard {
 interface Props {
   onNext: () => void
   onBack: () => void
+  setData?: (data: any) => void
 }
 
 const defaultFeatures = [
@@ -62,7 +63,7 @@ function InlineEdit({ value, onChange, className, ...props }: { value: string, o
   )
 }
 
-export default function ConfigurePricingStep({ onNext, onBack }: Props) {
+export default function ConfigurePricingStep({ onNext, onBack, setData }: Props) {
   const [cards, setCards] = useState<PricingCard[]>([
     { name: 'Basic', price: '9', features: defaultFeatures }
   ])
@@ -85,6 +86,11 @@ export default function ConfigurePricingStep({ onNext, onBack }: Props) {
 
   const handleRemove = (idx: number) => {
     setCards(cards => cards.filter((_, i) => i !== idx))
+  }
+
+  const handleContinue = () => {
+    setData?.(cards)
+    onNext()
   }
 
   return (
@@ -139,7 +145,7 @@ export default function ConfigurePricingStep({ onNext, onBack }: Props) {
           <Plus className="h-8 w-8" />
         </Button>
       </div>
-      <Button onClick={onNext} className="mt-8 w-full max-w-xs" size="lg">
+      <Button onClick={handleContinue} className="mt-8 w-full max-w-xs" size="lg">
         Continue
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
