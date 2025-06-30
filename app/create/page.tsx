@@ -13,7 +13,7 @@ import AddPaymentsStep from '@/components/create-steps/AddPaymentsStep'
 import SitemapBuilderStep from '@/components/create-steps/SitemapBuilderStep'
 import AddStorageStep from '@/components/create-steps/AddStorageStep'
 import AddDatabaseStep from '@/components/create-steps/AddDatabaseStep'
-import ConfigureHostingStep from '@/components/create-steps/ConfigureHostingStep'
+import AddHostingStep from '@/components/create-steps/AddHostingStep'
 import SetupCompleteStep from '@/components/create-steps/SetupCompleteStep'
 import VerticalProgressBar from '@/components/create-steps/VerticalProgressBar'
 
@@ -87,6 +87,7 @@ export default function CreatePage() {
     case 2:
       stepComponent = (
         <ProjectDescriptionStep
+          isWebApp={isWebApp}
           description={description}
           onChange={setDescription}
           onNext={goNext}
@@ -119,7 +120,7 @@ export default function CreatePage() {
       stepComponent = <AddDatabaseStep onNext={goNext} onBack={goBack} />
       break
     case 11:
-      stepComponent = <ConfigureHostingStep onNext={goNext} onBack={goBack} />
+      stepComponent = <AddHostingStep onNext={goNext} onBack={goBack} />
       break
     case 12:
       stepComponent = <SetupCompleteStep onRestart={restart} />
