@@ -1,0 +1,10 @@
+{
+  "SchifferJSONUploadStack": {
+    "TemplateLayerArn": "arn:aws:lambda:eu-central-1:656074853148:layer:template-repo-layer:1",
+    "JSONProcessorAPIEndpoint8198EF0A": "https://wly6jjg332.execute-api.eu-central-1.amazonaws.com/prod/",
+    "LambdaFunctionName": "SchifferJSONUploadStack-JSONProcessorFunctionCD2E9-ubmdVzbcNNaW",
+    "GitHubActionsRoleArn": "arn:aws:iam::656074853148:role/GitHubActions-SchifferJSONUploadStack-Role",
+    "S3BucketName": "json-processor-files-656074853148-eu-central-1",
+    "APIGatewayURL": "https://wly6jjg332.execute-api.eu-central-1.amazonaws.com/prod/"
+  }
+}
