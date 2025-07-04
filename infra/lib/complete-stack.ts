@@ -16,6 +16,13 @@ export class CompleteStack extends Stack {
       autoDeleteObjects: true, // NOT recommended for production
     });
 
+    // S3 Bucket for generated components
+    const componentsBucket = new s3.Bucket(this, 'ComponentsBucket', {
+      bucketName: 'schiffer-comps',
+      removalPolicy: RemovalPolicy.DESTROY, // NOT recommended for production
+      autoDeleteObjects: true, // NOT recommended for production
+    });
+
     // Lambda Function 1: JSON Processor
     const jsonProcessorLambda = new lambda.Function(this, 'JsonProcessorLambda', {
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -31,20 +38,21 @@ export class CompleteStack extends Stack {
     // Grant the JSON processor Lambda permissions to write to the S3 bucket
     generatedZipBucket.grantWrite(jsonProcessorLambda);
 
-    // Lambda Function 2: Bedrock Joke Generator
-    const bedrockJokeGeneratorLambda = new lambda.Function(this, 'BedrockJokeGeneratorLambda', {
+    // Lambda Function 2: Bedrock Component Generator
+    const bedrockComponentGeneratorLambda = new lambda.Function(this, 'BedrockComponentGeneratorLambda', {
       runtime: lambda.Runtime.PYTHON_3_9, // Python runtime for the new Lambda
-      handler: 'index.handler',
+      handler: 'index.lambda_handler',
       code: lambda.Code.fromAsset('lambda/bedrock-joke-generator'),
-      memorySize: 512, // Sufficient memory for a simple Bedrock call
-      timeout: Duration.minutes(1),
+      memorySize: 1024, // Increased memory for component generation
+      timeout: Duration.minutes(3), // Increased timeout for component generation
       environment: {
         BEDROCK_REGION: this.region,
+        COMPONENTS_BUCKET_NAME: componentsBucket.bucketName,
       },
     });
 
-    // Grant Bedrock Joke Generator Lambda permissions to invoke Bedrock models
-    bedrockJokeGeneratorLambda.addToRolePolicy(new iam.PolicyStatement({
+    // Grant Bedrock Component Generator Lambda permissions to invoke Bedrock models
+    bedrockComponentGeneratorLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: [
         'bedrock:InvokeModel',
       ],
@@ -53,20 +61,23 @@ export class CompleteStack extends Stack {
       ],
     }));
 
+    // Grant the Bedrock Component Generator Lambda permissions to write to the components bucket
+    componentsBucket.grantWrite(bedrockComponentGeneratorLambda);
+
     // Step Functions Tasks
     const processJsonTask = new tasks.LambdaInvoke(this, 'ProcessJson', {
       lambdaFunction: jsonProcessorLambda,
       outputPath: '$',
     });
 
-    const generateJokeTask = new tasks.LambdaInvoke(this, 'GenerateJoke', {
-      lambdaFunction: bedrockJokeGeneratorLambda,
+    const generateComponentTask = new tasks.LambdaInvoke(this, 'GenerateComponent', {
+      lambdaFunction: bedrockComponentGeneratorLambda,
       inputPath: '$',
-      outputPath: '$.Payload', // Pass all previous payload and add joke
+      outputPath: '$',
     });
 
     // Step Functions Workflow Definition
-    const definition = processJsonTask.next(generateJokeTask);
+    const definition = processJsonTask.next(generateComponentTask);
 
     const stateMachine = new sfn.StateMachine(this, 'CompleteWorkflow', {
       definition,
@@ -83,6 +94,12 @@ export class CompleteStack extends Stack {
       value: generatedZipBucket.bucketName,
       description: 'The name of the S3 bucket where generated zip files are stored',
       exportName: 'GeneratedZipBucketName',
+    });
+
+    new CfnOutput(this, 'ComponentsBucketName', {
+      value: componentsBucket.bucketName,
+      description: 'The name of the S3 bucket where generated components are stored',
+      exportName: 'ComponentsBucketName',
     });
   }
 } 

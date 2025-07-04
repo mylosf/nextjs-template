@@ -152,6 +152,35 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleDownloadComps = async () => {
+    toast.info("Preparing component download...");
+
+    try {
+      const response = await fetch('/api/download-components', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.downloadUrl) {
+          window.open(result.downloadUrl, '_blank');
+          toast.success(`Component download started! (${result.filename})`);
+        } else {
+          toast.error("Download URL not received.");
+        }
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to get component download link.");
+      }
+    } catch (error) {
+      console.error("Error initiating component download:", error);
+      toast.error(`Error: ${(error as Error).message || 'Unknown error during component download.'}`);
+    }
+  };
+
   const deleteProject = () => {
     if (!project) return
     
@@ -339,6 +368,10 @@ export default function ProjectDetailPage() {
               <Button variant="outline" onClick={handleDownloadFolder} disabled={isGenerating}>
                 <Download className="h-4 w-4 mr-2" />
                 Download Folder
+              </Button>
+              <Button variant="outline" onClick={handleDownloadComps} disabled={isGenerating}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Comps
               </Button>
               <Button variant="outline" onClick={() => router.push('/create')}>
                 <Edit className="h-4 w-4 mr-2" />

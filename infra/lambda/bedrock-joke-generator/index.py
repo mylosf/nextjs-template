@@ -1,54 +1,97 @@
 import json
 import boto3
 import os
+from botocore.exceptions import ClientError
 
-def handler(event, context):
-    print(f"Bedrock Joke Generator Lambda received event: {json.dumps(event, indent=2)}")
+# Initialize AWS clients
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='eu-central-1')
+s3_client = boto3.client('s3')
 
-    bedrock_runtime = boto3.client(
-        service_name='bedrock-runtime',
-        region_name=os.environ.get('BEDROCK_REGION', 'eu-central-1') # Use environment variable for region
-    )
-
+def lambda_handler(event, context):
     try:
-        # Claude Haiku model ID
-        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-
-        # Prepare the prompt for a one-liner joke
-        prompt = "Human: Tell me a one-liner joke.\n\nAssistant:"
+        print(f"Received event: {json.dumps(event)}")
         
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 100,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        })
+        # Get the S3 bucket name from environment variable
+        components_bucket = os.environ.get('COMPONENTS_BUCKET_NAME')
+        if not components_bucket:
+            raise ValueError("COMPONENTS_BUCKET_NAME environment variable not set")
+        
+        # Extract sitemap data from the event
+        sitemap_data = event.get('sitemap_data', {})
+        
+        # Hardcoded natural language brief
+        natural_language_brief = "Create a hero section about my tech startup."
+        
+        # Construct the prompt for Bedrock
+        prompt = f"""You are an expert front-end engineer. Create a React TypeScript component for: {natural_language_brief}
 
-        response = bedrock_runtime.invoke_model(body=body, modelId=model_id, contentType="application/json", accept="application/json")
-        response_body = json.loads(response.get('body').read())
-        joke_text = response_body['content'][0]['text'].strip()
+Requirements:
+- React 18+ with TypeScript
+- Use shadcn/ui components (import from @/components/ui/*)
+- Tailwind CSS classes only
+- Responsive design
+- Accessible (WCAG 2.1 AA)
+- Minimalistic design
 
-        print(f"Generated joke: {joke_text}")
+CRITICAL: Return ONLY valid TypeScript code. No explanations, no markdown, no backticks, no text before or after the code. Start directly with import statements and end with the export."""
 
-        # Pass through original event data and add the joke
-        output = {
-            **event, # Pass through original event data
-            "joke": joke_text
+        # Call Bedrock to generate the component
+        response = bedrock_runtime.invoke_model(
+            modelId='anthropic.claude-3-sonnet-20240229-v1:0',
+            body=json.dumps({
+                'anthropic_version': 'bedrock-2023-05-31',
+                'max_tokens': 2000,
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ]
+            }),
+            contentType='application/json'
+        )
+        
+        # Parse the response
+        response_body = json.loads(response['body'].read())
+        component_code = response_body['content'][0]['text']
+        
+        print(f"Generated component code: {component_code}")
+        
+        # Create filename with timestamp
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"hero-component-{timestamp}.tsx"
+        
+        # Upload the component to S3
+        s3_client.put_object(
+            Bucket=components_bucket,
+            Key=filename,
+            Body=component_code,
+            ContentType='text/plain'
+        )
+        
+        print(f"Component uploaded to S3: {filename}")
+        
+        # Return the result
+        return {
+            'statusCode': 200,
+            'component_generated': True,
+            'component_filename': filename,
+            'sitemap_data': sitemap_data,
+            's3_bucket': components_bucket
         }
-
-        print(f"Bedrock Joke Generator Lambda returning: {json.dumps(output, indent=2)}")
-        return output
-
+        
+    except ClientError as e:
+        print(f"AWS Client Error: {e}")
+        return {
+            'statusCode': 500,
+            'error': f'AWS Client Error: {str(e)}',
+            'sitemap_data': event.get('sitemap_data', {})
+        }
     except Exception as e:
-        error_message = str(e)
-        print(f"Error invoking Bedrock or processing response: {error_message}")
-        # Return error while passing through original event data if possible
-        error_output = {
-            **event,
-            "error": {"message": error_message, "code": "BEDROCK_INVOCATION_ERROR"}
-        }
-        return error_output 
+        print(f"Error: {e}")
+        return {
+            'statusCode': 500,
+            'error': str(e),
+            'sitemap_data': event.get('sitemap_data', {})
+        } 
