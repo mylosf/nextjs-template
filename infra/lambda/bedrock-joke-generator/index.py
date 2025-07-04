@@ -12,7 +12,7 @@ def handler(event, context):
 
     try:
         # Claude Haiku model ID
-        model_id = "anthropic.claude-3-7-sonnet-20250219-v1:0"
+        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
         # Prepare the prompt for a one-liner joke
         prompt = "Human: Tell me a one-liner joke.\n\nAssistant:"

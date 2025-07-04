@@ -49,7 +49,7 @@ export class CompleteStack extends Stack {
         'bedrock:InvokeModel',
       ],
       resources: [
-        'arn:aws:bedrock:*:*:foundation-model/anthropic.claude-3-7-sonnet-20250219-v1:0',
+        'arn:aws:bedrock:*:*:foundation-model/anthropic.claude-3-sonnet-20240229-v1:0',
       ],
     }));
 
