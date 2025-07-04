@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { PageHeader } from "@/components/sections/header/page-header"
 import { ArrowLeft, Download, Edit, Trash2, Calendar, FileText, Palette, Shield, CreditCard, Map, Database, Globe, Key, Eye, EyeOff } from 'lucide-react'
+import { toast } from "sonner"; // Import toast
 
 interface Project {
   id: string
@@ -35,6 +35,7 @@ export default function ProjectDetailPage() {
     accessKeyId: '',
     secretAccessKey: ''
   })
+  const [isGenerating, setIsGenerating] = useState(false); // New state for generation loading
 
   useEffect(() => {
     const projectId = params.id as string
@@ -77,6 +78,80 @@ export default function ProjectDetailPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleGenerateFolders = async () => {
+    if (!project) {
+      toast.error("No project data available to generate folders.");
+      return;
+    }
+    setIsGenerating(true);
+    toast.info("Generating folders... This may take a moment.");
+
+    try {
+      const response = await fetch('/api/generate-folders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          projectData: project.formData, // Send the entire formData
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || "Folders generation workflow started successfully!");
+        // TODO: Implement logic to poll for or directly trigger download of generated folders
+        // For now, simply notify the user.
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to start folder generation.");
+      }
+    } catch (error) {
+      console.error("Error initiating folder generation:", error);
+      toast.error(`Error: ${(error as Error).message || 'Unknown error during folder generation.'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadFolder = async () => {
+    if (!project) {
+      toast.error("No project data available to download.");
+      return;
+    }
+
+    toast.info("Preparing download link...");
+
+    try {
+      const response = await fetch('/api/download-zip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.signedUrl) {
+          window.open(result.signedUrl, '_blank');
+          toast.success("Download started!");
+        } else {
+          toast.error("Signed URL not received.");
+        }
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to get download link.");
+      }
+    } catch (error) {
+      console.error("Error initiating download:", error);
+      toast.error(`Error: ${(error as Error).message || 'Unknown error during download.'}`);
+    }
+  };
+
   const deleteProject = () => {
     if (!project) return
     
@@ -116,7 +191,6 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <div className="relative min-h-screen">
-        <PageHeader />
         <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
@@ -130,7 +204,6 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="relative min-h-screen">
-        <PageHeader />
         <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
           <div className="text-center">
             <h2 className="text-2xl font-semibold mb-2">Project Not Found</h2>
@@ -148,7 +221,6 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="relative min-h-screen">
-      <PageHeader />
 
       {/* Header */}
       <div className="px-8 py-6">
@@ -247,193 +319,119 @@ export default function ProjectDetailPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Download JSON
               </Button>
+              <Button
+                variant="default"
+                onClick={handleGenerateFolders}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                  </span>
+                ) : (
+                  <>Download Folders</>
+                )}
+              </Button>
+              <Button variant="outline" onClick={handleDownloadFolder} disabled={isGenerating}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Folder
+              </Button>
               <Button variant="outline" onClick={() => router.push('/create')}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Project
               </Button>
               <Button variant="outline" onClick={deleteProject} className="text-red-600 hover:text-red-700">
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Delete Project
               </Button>
             </div>
           </div>
 
-          {/* AWS Credentials Status */}
-          {project.awsCredentials && (
-            <Card className="mb-6 border-orange-200 bg-orange-50/10">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2 text-orange-600">
-                  <Key className="h-5 w-5" />
-                  AWS Credentials Configured
-                </CardTitle>
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Project Details</CardTitle>
+              <CardDescription>Overview of your project settings.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {formData.websiteType && (
+                <div>
+                  <h3 className="font-semibold mb-1">Website Type</h3>
+                  <p>{formData.websiteType}</p>
+                </div>
+              )}
+              {formData.designChoice && (
+                <div>
+                  <h3 className="font-semibold mb-1">Design Choice</h3>
+                  <p>{formData.designChoice}</p>
+                </div>
+              )}
+              {formData.authConfig && (
+                <div>
+                  <h3 className="font-semibold mb-1">Authentication</h3>
+                  <p>{formData.authConfig.authType} - {formData.authConfig.identityProvider}</p>
+                </div>
+              )}
+              {formData.hostingChoice && (
+                <div>
+                  <h3 className="font-semibold mb-1">Hosting</h3>
+                  <p>{formData.hostingChoice.type}</p>
+                </div>
+              )}
+              {formData.paymentConfig && (
+                <div>
+                  <h3 className="font-semibold mb-1">Payments</h3>
+                  <p>{formData.paymentConfig.currency} ({formData.paymentConfig.paymentProcessor})</p>
+                </div>
+              )}
+              {formData.databaseConfig && (
+                <div>
+                  <h3 className="font-semibold mb-1">Database</h3>
+                  <p>{formData.databaseConfig.type}</p>
+                </div>
+              )}
+              {formData.storageConfig && (
+                <div>
+                  <h3 className="font-semibold mb-1">Storage</h3>
+                  <p>{formData.storageConfig.type}</p>
+                </div>
+              )}
+              {formData.mediaConfig && (
+                <div>
+                  <h3 className="font-semibold mb-1">Media</h3>
+                  <p>{formData.mediaConfig.type}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {formData.sitemap && formData.sitemap.pages && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Sitemap Configuration</CardTitle>
+                <CardDescription>Pages and their sections configured for your website.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Access Key ID:</span>
-                    <p className="font-mono text-orange-600">{project.awsCredentials.accessKeyId}</p>
+                {formData.sitemap.pages.map((page: any, pageIndex: number) => (
+                  <div key={pageIndex} className="mb-4 p-4 border rounded-md">
+                    <h3 className="font-semibold mb-2">Page: {page.name || 'Unnamed Page'} ({page.route})</h3>
+                    {page.sections && page.sections.length > 0 ? (
+                      <ul className="list-disc list-inside ml-4">
+                        {page.sections.map((section: any, sectionIndex: number) => (
+                          <li key={sectionIndex}>{section.name} ({section.type})</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No sections configured for this page.</p>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-gray-500">Secret Access Key:</span>
-                    <p className="font-mono text-orange-600">••••••••••••••••</p>
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           )}
-
-          {/* Project Configuration Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Basic Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Project Name:</span>
-                  <p className="font-medium">{formData.projectName || 'Not specified'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Type:</span>
-                  <p className="font-medium">{formData.isWebApp ? 'Web Application' : 'Website'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Description:</span>
-                  <p className="font-medium">{formData.description || 'No description'}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Design */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Design
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Logo:</span>
-                  <p className="font-medium">{formData.media?.logo?.uploaded ? 'Uploaded' : 'Not uploaded'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Favicon:</span>
-                  <p className="font-medium">{formData.media?.favicon?.uploaded ? 'Uploaded' : 'Not uploaded'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Color Palette:</span>
-                  <p className="font-medium">{formData.design?.selected ? 'Configured' : 'Not configured'}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Authentication */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Authentication
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Providers:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.auth?.providers?.length > 0 ? (
-                      formData.auth.providers.map((provider: string, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {provider}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-gray-400">None selected</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pricing */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Pricing
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Plans:</span>
-                  <p className="font-medium">{formData.pricing?.length || 0} pricing plans</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Payment Methods:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.payments?.length > 0 ? (
-                      formData.payments.map((method: string, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {method}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-gray-400">None selected</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Sitemap */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Map className="h-5 w-5" />
-                  Sitemap
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Pages:</span>
-                  <p className="font-medium">{formData.sitemap?.length || 0} pages</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Sections:</span>
-                  <p className="font-medium">
-                    {formData.sitemap?.reduce((total: number, page: any) => total + (page.sections?.length || 0), 0) || 0} sections
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Infrastructure */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  Infrastructure
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-500">Storage:</span>
-                  <p className="font-medium">{formData.storage?.length > 0 ? 'Configured' : 'Not configured'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Database Tables:</span>
-                  <p className="font-medium">{formData.database?.tables?.length || 0} tables</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Domains:</span>
-                  <p className="font-medium">{formData.hosting?.length || 0} domains</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>

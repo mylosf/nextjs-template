@@ -1,0 +1,447 @@
+{
+  "Resources": {
+    "GeneratedZipBucket804DCB41": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true"
+          }
+        ]
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/GeneratedZipBucket/Resource"
+      }
+    },
+    "GeneratedZipBucketPolicy33F73821": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "GeneratedZipBucket804DCB41"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:PutBucketPolicy"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn"
+                  ]
+                }
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "GeneratedZipBucket804DCB41",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "GeneratedZipBucket804DCB41",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/GeneratedZipBucket/Policy/Resource"
+      }
+    },
+    "GeneratedZipBucketAutoDeleteObjectsCustomResourceA2C5EAEF": {
+      "Type": "Custom::S3AutoDeleteObjects",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn"
+          ]
+        },
+        "BucketName": {
+          "Ref": "GeneratedZipBucket804DCB41"
+        }
+      },
+      "DependsOn": [
+        "GeneratedZipBucketPolicy33F73821"
+      ],
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/GeneratedZipBucket/AutoDeleteObjectsCustomResource/Default"
+      }
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role"
+      }
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-656074853148-eu-central-1",
+          "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip"
+        },
+        "Timeout": 900,
+        "MemorySize": 128,
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs22.x",
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "GeneratedZipBucket804DCB41"
+              },
+              " S3 bucket."
+            ]
+          ]
+        }
+      },
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
+        "aws:asset:path": "asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6",
+        "aws:asset:property": "Code"
+      }
+    },
+    "JsonProcessorLambdaServiceRole95EFF8BB": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/JsonProcessorLambda/ServiceRole/Resource"
+      }
+    },
+    "JsonProcessorLambdaServiceRoleDefaultPolicyCBB506D9": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "GeneratedZipBucket804DCB41",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "GeneratedZipBucket804DCB41",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "JsonProcessorLambdaServiceRoleDefaultPolicyCBB506D9",
+        "Roles": [
+          {
+            "Ref": "JsonProcessorLambdaServiceRole95EFF8BB"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/JsonProcessorLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "JsonProcessorLambda65734F40": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-656074853148-eu-central-1",
+          "S3Key": "13523a270f84fc6df1f1c3affeaf7ee5b38774dbbb4c08bcb1894b7055975c58.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "S3_BUCKET_NAME": {
+              "Ref": "GeneratedZipBucket804DCB41"
+            }
+          }
+        },
+        "Handler": "index.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "JsonProcessorLambdaServiceRole95EFF8BB",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.9",
+        "Timeout": 300
+      },
+      "DependsOn": [
+        "JsonProcessorLambdaServiceRoleDefaultPolicyCBB506D9",
+        "JsonProcessorLambdaServiceRole95EFF8BB"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/JsonProcessorLambda/Resource",
+        "aws:asset:path": "asset.13523a270f84fc6df1f1c3affeaf7ee5b38774dbbb4c08bcb1894b7055975c58",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "JsonProcessorLambdaLogGroup6BEBE83C": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "JsonProcessorLambda65734F40"
+              }
+            ]
+          ]
+        },
+        "RetentionInDays": 731
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/JsonProcessorLambda/LogGroup/Resource"
+      }
+    },
+    "CompleteWorkflowRoleE50AD2FB": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/CompleteWorkflow/Role/Resource"
+      }
+    },
+    "CompleteWorkflowRoleDefaultPolicy76305E35": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "JsonProcessorLambda65734F40",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "JsonProcessorLambda65734F40",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "CompleteWorkflowRoleDefaultPolicy76305E35",
+        "Roles": [
+          {
+            "Ref": "CompleteWorkflowRoleE50AD2FB"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/CompleteWorkflow/Role/DefaultPolicy/Resource"
+      }
+    },
+    "CompleteWorkflowD4B1E560": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Join": [
+            "",
+            [
+              "{\"StartAt\":\"ProcessJson\",\"States\":{\"ProcessJson\":{\"End\":true,\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+              {
+                "Fn::GetAtt": [
+                  "JsonProcessorLambda65734F40",
+                  "Arn"
+                ]
+              },
+              "\",\"Payload.$\":\"$\"}}}}"
+            ]
+          ]
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "CompleteWorkflowRoleE50AD2FB",
+            "Arn"
+          ]
+        },
+        "StateMachineName": "CompleteWorkflow"
+      },
+      "DependsOn": [
+        "CompleteWorkflowRoleDefaultPolicy76305E35",
+        "CompleteWorkflowRoleE50AD2FB"
+      ],
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/CompleteWorkflow/Resource"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/7VTTW9bIRD8LeEYYeo6h0q+2emHIqWNZef2ZFkY1jY2DywWHLno/fcKHiR2c6hUtSdgZ2Z3YJcRGw2H7OMNf8GBkIeBVmsWF56LA+UvuIp4x+I0iAP4JhIHrT1xPbNaiTMZEwnonT0TSnjw9jNo8PC03oPwSMbeBeiW9H5jej3tl17cRLLORzImt+SS1uOFPOUIzbKjmrdryVn8GozwyprkJRivWsh6SnbcSA2unISVFWihte68UD9rIIls8OUE5qScNS2Y4oRGwqX8chluMvOWLHub1UNHFW9ZnFsNTSQcMbQgp2cyjuTolBHqyPVECBtMLdZzkmCSM5SKpOWGb0HmmytAMm7iVew8cYW7LP6e7ayWqM1oYkG952L3YLQy8Ipl938E//oK/81VfvBUjZaxSSaq4Nkm5F2e92EpF557SN3EaulfJcoOe3MdxbsVRwSPbJIWqu0WWXy022/OhmMTiS7bH7xMbq+vjI6ih+OmDBiuPMcDssc8/A/mZA9wTcg/1cN3LnbKpCmUsFFGvTaGErzA34rWdqX7XXUqu7nM2XX0PqC37RzQBicgP0buSgn8hs+cPSkJLv1cml9h4flWmS29zEBrlqfgj8F31FgJbI8fTqMR+8SGN3tUalC+OJv36y8r6C5OqwQAAA=="
+      },
+      "Metadata": {
+        "aws:cdk:path": "SchifferCompleteStack/CDKMetadata/Default"
+      }
+    }
+  },
+  "Outputs": {
+    "CompleteWorkflowArn": {
+      "Description": "The ARN of the Complete Step Functions Workflow",
+      "Value": {
+        "Ref": "CompleteWorkflowD4B1E560"
+      },
+      "Export": {
+        "Name": "CompleteWorkflowArn"
+      }
+    },
+    "GeneratedZipBucketName": {
+      "Description": "The name of the S3 bucket where generated zip files are stored",
+      "Value": {
+        "Ref": "GeneratedZipBucket804DCB41"
+      },
+      "Export": {
+        "Name": "GeneratedZipBucketName"
+      }
+    }
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+    }
+  }
+}

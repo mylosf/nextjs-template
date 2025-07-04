@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { ThemeProvider } from '@/components/themes/theme-provider'
+import { Toaster } from "sonner"; // Import Toaster
 
 export const metadata: Metadata = {
   title: 'schiffer',
@@ -21,6 +22,7 @@ export default function RootLayout({
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen">LOADING...</div>}>
                 {children}
             </Suspense>
+            <Toaster /> {/* Add Toaster component here */}
         </ThemeProvider>
       </body>
     </html>

@@ -6,6 +6,7 @@ import { HostingStack } from '../lib/hosting-stack';
 import { StorageStack } from '../lib/storage-stack';
 import { DataStack } from '../lib/data-stack';
 import { JSONUploadStack } from '../lib/json-upload-stack';
+import { CompleteStack } from '../lib/complete-stack';
 
 const app = new cdk.App();
 
@@ -18,6 +19,7 @@ const hostingStack = new HostingStack(app, 'SchifferHostingStack', { env: env })
 const storageStack = new StorageStack(app, 'SchifferStorageStack', { env: env });
 const dataStack = new DataStack(app, 'SchifferDataStack', { env });
 const jsonUploadStack = new JSONUploadStack(app, 'SchifferJSONUploadStack', { env });
+const completeStack = new CompleteStack(app, 'SchifferCompleteStack', { env });
 
 /*Add dependencies between stacks if needed
 storageStack.addDependency(authStack);
