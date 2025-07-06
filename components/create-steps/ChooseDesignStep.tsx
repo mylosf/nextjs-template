@@ -988,8 +988,8 @@ export default function ChooseDesignStep({ onNext, onBack, setData }: Props) {
                   className="relative rounded-2xl p-4 flex flex-col justify-between shadow cursor-pointer transition-all min-h-[120px]"
                   style={{ background: palette.hex }}
                   onClick={() => { setSelected(palette.hex); setShowColorPicker(index); }}
-                >
-                  <div className="flex-1 flex flex-col justify-between">
+              >
+                <div className="flex-1 flex flex-col justify-between">
                     <div className="text-white text-lg truncate mb-2 drop-shadow">{colorLabel}</div>
                     <div className="text-white text-sm font-mono drop-shadow">{palette.hex.toUpperCase()}</div>
                   </div>
