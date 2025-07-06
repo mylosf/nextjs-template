@@ -56,7 +56,7 @@ export default function ProjectDescriptionStep({ isWebApp, description, onChange
         className="w-full"
       >
         <Send className="h-4 w-4 mr-2" />
-        Next
+        Continue
       </Button>
     </div>
   )

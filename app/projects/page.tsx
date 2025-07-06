@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { Navbar2 } from "@/components/sections/navbar2"
 
 interface Project {
   id: string
@@ -40,6 +41,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="relative min-h-screen">
+      <Navbar2 />
 
       {/* Content */}
       <section className="flex flex-col items-center justify-center py-8 px-8 min-h-[calc(100vh-8rem)]">

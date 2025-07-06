@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Upload } from 'lucide-react'
+import { Upload, Send } from 'lucide-react'
 
 interface MediaMetadata {
   uploaded: boolean
@@ -122,9 +122,11 @@ export default function AddMediaStep({ onNext, onBack, setData }: Props) {
           </div>
         </div>
       </div>
-      <div className="flex justify-between">
-        {onBack && <Button variant="ghost" onClick={onBack}>Back</Button>}
-        <Button onClick={handleNext}>Next</Button>
+      <div className="flex justify-end">
+        <Button onClick={handleNext} className="w-full">
+          <Send className="h-4 w-4 mr-2" />
+          Continue
+        </Button>
       </div>
     </div>
   )

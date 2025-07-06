@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from 'react'
-import { PageHeader } from '@/components/sections/header/page-header'
 import BasicProjectNameStep from '@/components/create-steps/BasicProjectNameStep'
 import WebsiteTypeStep from '@/components/create-steps/WebsiteTypeStep'
 import ProjectDescriptionStep from '@/components/create-steps/ProjectDescriptionStep'
@@ -153,7 +152,6 @@ export default function CreatePage() {
 
   return (
     <div className="relative min-h-screen">
-      <PageHeader />
       {isMobile && (
         <div className="w-full px-4 pt-4">
           <VerticalProgressBar

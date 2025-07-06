@@ -1,6 +1,7 @@
 {
   "SchifferCompleteStack": {
     "CompleteWorkflowArn": "arn:aws:states:eu-central-1:656074853148:stateMachine:CompleteWorkflow",
+    "ComponentGenerationQueueUrl": "https://sqs.eu-central-1.amazonaws.com/656074853148/component-generation-queue",
     "GeneratedZipBucketName": "schiffercompletestack-generatedzipbucket804dcb41-r5v8j9gamdcx",
     "ComponentsBucketName": "schiffer-comps"
   }

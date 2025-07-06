@@ -12,7 +12,7 @@ import {
   Card, CardContent, CardDescription, CardFooter,
   CardHeader, CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
@@ -36,6 +36,41 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
   const [code, setCode] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userAttributes, setUserAttributes] = useState<Record<string, string> | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const checkAuthStatus = async () => {
+    try {
+      setIsCheckingAuth(true);
+      // Force refresh to get the latest auth state
+      const { tokens } = await fetchAuthSession({ forceRefresh: true });
+      
+      // Check if we have valid tokens and they're not expired
+      if (tokens?.idToken && tokens?.accessToken) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        const tokenExpiration = tokens.idToken.payload.exp as number;
+        
+        if (tokenExpiration > currentTime) {
+          setIsLoggedIn(true);
+          setUserAttributes(tokens.idToken.payload as Record<string, string>);
+          console.log("User is logged in with valid tokens");
+        } else {
+          console.log("Tokens are expired");
+          setIsLoggedIn(false);
+          setUserAttributes(null);
+        }
+      } else {
+        console.log("No valid tokens found");
+        setIsLoggedIn(false);
+        setUserAttributes(null);
+      }
+    } catch (error) {
+      console.log("Auth check failed - user is not authenticated:", error);
+      setIsLoggedIn(false);
+      setUserAttributes(null);
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
 
   useEffect(() => {
     // Configure Amplify with your Cognito details received as props
@@ -53,22 +88,14 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
     });
     console.log("Amplify configured successfully with props from SSM.");
 
-    const checkAuthStatus = async () => {
-      try {
-        const { tokens } = await fetchAuthSession();
-        setIsLoggedIn(true);
-        setUserAttributes(tokens?.idToken?.payload as Record<string, string> || null);
-        console.log("User is logged in. Tokens:", tokens);
-      } catch (error) {
-        setIsLoggedIn(false);
-        setUserAttributes(null);
-        console.log("User is not logged in.", error);
-      }
-    };
-    checkAuthStatus();
+    // Add a small delay to ensure Amplify is fully configured
+    const timeoutId = setTimeout(checkAuthStatus, 100);
 
     const interval = setInterval(checkAuthStatus, 60000); // Check every minute
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
   }, [userPoolId, userPoolClientId, identityPoolId]); // Re-run effect if props change
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -166,21 +193,36 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ global: true }); // Sign out from all devices
       toast.success("Signed out successfully!");
       setIsLoggedIn(false);
       setUserAttributes(null);
-      router.push("/auth");
+      setCurrentView("signIn"); // Reset to sign in view
+      // Force a re-check of auth status after sign out
+      setTimeout(checkAuthStatus, 100);
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error((error as Error).message || "Sign out failed.");
+      // Even if sign out fails, clear local state
+      setIsLoggedIn(false);
+      setUserAttributes(null);
+      setCurrentView("signIn");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+    <div className="dark flex min-h-screen items-center justify-center bg-black text-white">
       <Toaster />
-      {isLoggedIn ? (
+      {isCheckingAuth ? (
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-sm text-muted-foreground">Checking authentication...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : isLoggedIn ? (
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome, {userAttributes?.email || 'User'}!</CardTitle>
@@ -207,117 +249,125 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
               <Button onClick={() => setCurrentView("signIn")} variant="outline" className="w-full">Cancel</Button>
             </CardFooter>
           </Card>
-        ) : (
-          <Tabs value={currentView} onValueChange={setCurrentView} className="w-full max-w-md">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signIn">Sign In</TabsTrigger>
-              <TabsTrigger value="signUp">Sign Up</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signIn">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sign In</CardTitle>
-                  <CardDescription>Sign in to your account.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <form onSubmit={handleSignIn}>
-                    <div className="space-y-1">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full mt-4">Sign In</Button>
-                  </form>
-                </CardContent>
-                <CardFooter className="flex-col space-y-2">
-                  <Button variant="link" onClick={() => setCurrentView("forgotPassword")}>Forgot Password?</Button>
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{" "}
-                    <Button variant="link" onClick={() => setCurrentView("signUp")} className="p-0 h-auto text-sm">Sign Up</Button>
-                  </p>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            <TabsContent value="signUp">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sign Up</CardTitle>
-                  <CardDescription>Create a new account.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <form onSubmit={handleSignUp}>
-                    <div className="space-y-1">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full mt-4">Sign Up</Button>
-                  </form>
-                </CardContent>
-                <CardFooter className="flex-col space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Already have an account?{" "}
-                    <Button variant="link" onClick={() => setCurrentView("signIn")} className="p-0 h-auto text-sm">Sign In</Button>
-                  </p>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            <TabsContent value="forgotPassword">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Reset Password</CardTitle>
-                  <CardDescription>Enter your email to receive a reset code.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <form onSubmit={handleResetPassword}>
-                    <div className="space-y-1">
-                      <Label htmlFor="reset-email">Email</Label>
-                      <Input id="reset-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full mt-4">Send Code</Button>
-                  </form>
-                </CardContent>
-                <CardFooter className="flex-col space-y-2">
-                  <Button variant="link" onClick={() => setCurrentView("signIn")}>← Back to Sign In</Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            <TabsContent value="forgotPasswordSubmit">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Confirm Password Reset</CardTitle>
-                  <CardDescription>Enter the code sent to your email and your new password.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <form onSubmit={handleConfirmResetPassword}>
-                    <div className="space-y-1">
-                      <Label htmlFor="reset-code">Verification Code</Label>
-                      <Input id="reset-code" type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="new-password">New Password</Label>
-                      <Input id="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full mt-4">Reset Password</Button>
-                  </form>
-                </CardContent>
-                <CardFooter className="flex-col space-y-2">
-                  <Button variant="link" onClick={() => setCurrentView("signIn")}>← Back to Sign In</Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )
+        ) : currentView === "signIn" ? (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Sign In</CardTitle>
+              <CardDescription>Sign in to your account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <form onSubmit={handleSignIn}>
+                <div className="space-y-1">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full mt-4">Sign In</Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <Button variant="link" onClick={() => setCurrentView("forgotPassword")}>Forgot Password?</Button>
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Button variant="link" onClick={() => setCurrentView("signUp")} className="p-0 h-auto text-sm">Sign Up</Button>
+              </p>
+            </CardFooter>
+          </Card>
+        ) : currentView === "signUp" ? (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Sign Up</CardTitle>
+              <CardDescription>Create a new account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <form onSubmit={handleSignUp}>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full mt-4">Sign Up</Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Button variant="link" onClick={() => setCurrentView("signIn")} className="p-0 h-auto text-sm">Sign In</Button>
+              </p>
+            </CardFooter>
+          </Card>
+        ) : currentView === "forgotPassword" ? (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Reset Password</CardTitle>
+              <CardDescription>Enter your email to receive a reset code.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <form onSubmit={handleResetPassword}>
+                <div className="space-y-1">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input id="reset-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full mt-4">Send Code</Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <Button variant="link" onClick={() => setCurrentView("signIn")}>← Back to Sign In</Button>
+            </CardFooter>
+          </Card>
+        ) : currentView === "forgotPasswordSubmit" ? (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Confirm Password Reset</CardTitle>
+              <CardDescription>Enter the code sent to your email and your new password.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <form onSubmit={handleConfirmResetPassword}>
+                <div className="space-y-1">
+                  <Label htmlFor="reset-code">Verification Code</Label>
+                  <Input id="reset-code" type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input id="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full mt-4">Reset Password</Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <Button variant="link" onClick={() => setCurrentView("signIn")}>← Back to Sign In</Button>
+            </CardFooter>
+          </Card>
+        ) : currentView === "confirmSignUp" ? (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Confirm Sign Up</CardTitle>
+              <CardDescription>Enter the verification code sent to your email.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <form onSubmit={handleConfirmSignUp}>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmation-code">Verification Code</Label>
+                  <Input id="confirmation-code" type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full mt-4">Confirm Account</Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <Button variant="link" onClick={() => setCurrentView("signIn")}>← Back to Sign In</Button>
+            </CardFooter>
+          </Card>
+        ) : null
       )}
     </div>
   );
