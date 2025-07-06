@@ -7,6 +7,8 @@ interface PricingCard {
   name: string
   price: string
   features: string[]
+  periodText: string
+  buttonText: string
 }
 
 interface Props {
@@ -24,14 +26,37 @@ const defaultFeatures = [
 function InlineEdit({ value, onChange, className, ...props }: { value: string, onChange: (v: string) => void, className?: string, [key: string]: any }) {
   const [editing, setEditing] = useState(false)
   const [temp, setTemp] = useState(value)
+  const [fixedWidth, setFixedWidth] = useState<string>('')
+  const [fixedHeight, setFixedHeight] = useState<string>('')
   const ref = useRef<HTMLInputElement>(null)
+  const spanRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     setTemp(value)
   }, [value])
 
+  const startEditing = () => {
+    if (spanRef.current) {
+      // Capture the exact width and height of the span before switching to edit mode
+      const rect = spanRef.current.getBoundingClientRect()
+      setFixedWidth(`${rect.width}px`)
+      setFixedHeight(`${rect.height}px`)
+    }
+    setEditing(true)
+  }
+
+  const finishEditing = () => {
+    setEditing(false)
+    onChange(temp)
+    // Reset fixed dimensions so they can readjust to new content
+    setFixedWidth('')
+    setFixedHeight('')
+  }
+
   useEffect(() => {
-    if (editing && ref.current) ref.current.focus()
+    if (editing && ref.current) {
+      ref.current.focus()
+    }
   }, [editing])
 
   return editing ? (
@@ -39,23 +64,39 @@ function InlineEdit({ value, onChange, className, ...props }: { value: string, o
       ref={ref}
       value={temp}
       onChange={e => setTemp(e.target.value)}
-      onBlur={() => { setEditing(false); onChange(temp) }}
+      onBlur={finishEditing}
       onKeyDown={e => {
         if (e.key === 'Enter') {
-          setEditing(false)
-          onChange(temp)
+          finishEditing()
         }
       }}
-      className={className + ' bg-transparent border-none outline-none p-0 m-0 focus:ring-0'}
-      style={{ minWidth: 0 }}
+      className={`${className} bg-transparent border-none outline-none p-0 m-0 focus:ring-0`}
+      style={{ 
+        width: fixedWidth,
+        height: fixedHeight,
+        minWidth: fixedWidth,
+        minHeight: fixedHeight,
+        maxWidth: '100%',
+        display: 'inline',
+        lineHeight: 'inherit',
+        fontSize: 'inherit',
+        fontWeight: 'inherit',
+        fontFamily: 'inherit',
+        textAlign: 'inherit',
+        verticalAlign: 'inherit',
+        boxSizing: 'border-box',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word'
+      }}
       {...props}
     />
   ) : (
     <span
-      className={className + ' cursor-text'}
-      onClick={() => setEditing(true)}
+      ref={spanRef}
+      className={`${className} cursor-text`}
+      onClick={startEditing}
       tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter') setEditing(true) }}
+      onKeyDown={e => { if (e.key === 'Enter') startEditing() }}
       {...props}
     >
       {value}
@@ -65,7 +106,7 @@ function InlineEdit({ value, onChange, className, ...props }: { value: string, o
 
 export default function ConfigurePricingStep({ onNext, onBack, setData }: Props) {
   const [cards, setCards] = useState<PricingCard[]>([
-    { name: 'Basic', price: '9', features: defaultFeatures }
+    { name: 'Basic', price: '$9', features: defaultFeatures, periodText: '/month', buttonText: 'Get started' }
   ])
 
   const handleChange = (idx: number, field: keyof PricingCard, value: string) => {
@@ -81,7 +122,7 @@ export default function ConfigurePricingStep({ onNext, onBack, setData }: Props)
   }
 
   const handleAdd = () => {
-    setCards([...cards, { name: 'New Plan', price: '19', features: defaultFeatures }])
+    setCards([...cards, { name: 'New Plan', price: '19', features: defaultFeatures, periodText: '/month', buttonText: 'Get started' }])
   }
 
   const handleRemove = (idx: number) => {
@@ -114,19 +155,24 @@ export default function ConfigurePricingStep({ onNext, onBack, setData }: Props)
                   <InlineEdit value={card.name} onChange={v => handleChange(idx, 'name', v)} className="text-center text-lg font-bold" />
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col items-center gap-2">
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-bold">
+              <CardContent className="flex flex-col items-center gap-2 px-6">
+                <div className="flex items-end gap-2 w-full justify-center">
+                  <div className="text-5xl font-bold max-w-[200px] break-words overflow-wrap-anywhere text-center">
                     <InlineEdit
                       value={card.price}
                       onChange={v => handleChange(idx, 'price', v)}
-                      className="text-5xl font-bold leading-none text-center"
-                      style={{ minWidth: '2.5ch', width: '3ch' }}
+                      className="text-5xl font-bold leading-none text-center break-words"
                       inputMode="numeric"
                       pattern="[0-9]*"
                     />
-                  </span>
-                  <span className="text-base text-gray-400 mb-1">/month</span>
+                  </div>
+                  <div className="text-base text-gray-400 mb-1 min-w-[4rem] flex justify-center max-w-[80px] break-words">
+                    <InlineEdit
+                      value={card.periodText}
+                      onChange={v => handleChange(idx, 'periodText', v)}
+                      className="text-base text-gray-400 break-words"
+                    />
+                  </div>
                 </div>
                 <ul className="text-sm text-gray-200 space-y-1 mb-4 mt-2">
                   {card.features.map((feature, i) => (
@@ -136,7 +182,15 @@ export default function ConfigurePricingStep({ onNext, onBack, setData }: Props)
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full">Get started</Button>
+                <Button className="w-full h-auto min-h-[2.5rem] flex items-center justify-center px-4 py-2">
+                  <div className="flex items-center justify-center w-full max-w-full">
+                    <InlineEdit
+                      value={card.buttonText}
+                      onChange={v => handleChange(idx, 'buttonText', v)}
+                      className="text-center font-medium break-words hyphens-auto max-w-full"
+                    />
+                  </div>
+                </Button>
               </CardContent>
             </Card>
           </div>

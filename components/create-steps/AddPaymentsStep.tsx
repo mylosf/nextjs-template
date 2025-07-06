@@ -11,7 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, CreditCard, Tag, CreditCard as Paypal } from "lucide-react";
+import { ArrowRight, CreditCard, Tag, CreditCard as Paypal, Send } from "lucide-react";
 
 const PAYMENT_METHODS = [
   { label: "Credit Card", value: "credit_card", icon: CreditCard },
@@ -227,8 +227,8 @@ export default function AddPaymentsStep({ onNext, onBack, setData }: Props) {
             })}
           </div>
           <Button onClick={handleContinue} className="w-full mt-2" size="lg">
+            <Send className="mr-2 h-4 w-4" />
             Continue
-            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
