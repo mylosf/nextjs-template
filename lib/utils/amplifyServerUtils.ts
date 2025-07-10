@@ -22,7 +22,7 @@ export async function getSSMParameterValue(name: string): Promise<string | undef
     }
     return value;
   } catch (error) {
-    console.error(, error);
+    console.error('Error getting SSM parameter value:', error);
     return undefined;
   }
 }

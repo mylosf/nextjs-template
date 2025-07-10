@@ -1,5 +1,5 @@
 import AuthClientPage from '@/components/auth/AuthClientPage';
-import { getSSMParameterValue } from '@/lib/amplifyServerUtils';
+import { getSSMParameterValue } from '@/lib/utils/amplifyServerUtils';
 
 export default async function AuthPage() {
   const userPoolId = await getSSMParameterValue('/schiffer/auth/userPoolId');

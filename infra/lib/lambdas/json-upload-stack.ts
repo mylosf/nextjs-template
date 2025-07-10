@@ -4,6 +4,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as apigateway from 'aws-cdk-lib/aws-apigateway'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
+import * as wafv2 from 'aws-cdk-lib/aws-wafv2'
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch'
 import { Construct } from 'constructs'
 import * as path from 'path'
 
@@ -19,7 +21,7 @@ export class JSONUploadStack extends cdk.Stack {
     // Initial layer creation - GitHub Actions will publish new versions
     const templateLayer = new lambda.LayerVersion(this, 'TemplateLayer', {
       layerVersionName: 'template-repo-layer',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../template-layer-placeholder')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../template-layer-placeholder')),
       compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
       description: 'Template repository layer - managed by CI/CD',
     })
@@ -35,8 +37,16 @@ export class JSONUploadStack extends cdk.Stack {
     const bucket = new s3.Bucket(this, 'GeneratedFilesBucket', {
       bucketName: `json-processor-files-${this.account}-${this.region}`,
       versioned: true,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: cdk.RemovalPolicy.RETAIN, // Production: Retain bucket
+      autoDeleteObjects: false, // Production: Don't auto-delete
+      lifecycleRules: [{
+        id: 'DeleteOldVersions',
+        noncurrentVersionExpiration: cdk.Duration.days(30),
+        transitions: [{
+          storageClass: s3.StorageClass.INFREQUENT_ACCESS,
+          transitionAfter: cdk.Duration.days(30)
+        }]
+      }],
       cors: [
         {
           allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT, s3.HttpMethods.POST],
@@ -50,7 +60,7 @@ export class JSONUploadStack extends cdk.Stack {
     const processorFunction = new lambda.Function(this, 'JSONProcessorFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/json-processor')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/json-processor')),
       timeout: cdk.Duration.seconds(60), // Increased for file processing
       memorySize: 1024, // Increased for zip operations
       layers: [templateLayer],
@@ -93,6 +103,57 @@ export class JSONUploadStack extends cdk.Stack {
     const lambdaIntegration = new apigateway.LambdaIntegration(processorFunction, {
       requestTemplates: { 'application/json': '{ "statusCode": "200" }' },
     })
+
+    // Add WAF for API Gateway protection
+    const webAcl = new wafv2.CfnWebACL(this, 'APIGatewayWAF', {
+      scope: 'REGIONAL',
+      defaultAction: { allow: {} },
+      rules: [
+        {
+          name: 'RateLimitRule',
+          priority: 1,
+          statement: {
+            rateBasedStatement: {
+              limit: 2000,
+              aggregateKeyType: 'IP'
+            }
+          },
+          action: { block: {} },
+          visibilityConfig: {
+            sampledRequestsEnabled: true,
+            cloudWatchMetricsEnabled: true,
+            metricName: 'RateLimitRule'
+          }
+        },
+        {
+          name: 'AWSManagedRulesCommonRuleSet',
+          priority: 2,
+          overrideAction: { none: {} },
+          statement: {
+            managedRuleGroupStatement: {
+              vendorName: 'AWS',
+              name: 'AWSManagedRulesCommonRuleSet'
+            }
+          },
+          visibilityConfig: {
+            sampledRequestsEnabled: true,
+            cloudWatchMetricsEnabled: true,
+            metricName: 'CommonRuleSetMetric'
+          }
+        }
+      ],
+      visibilityConfig: {
+        sampledRequestsEnabled: true,
+        cloudWatchMetricsEnabled: true,
+        metricName: 'APIGatewayWAF'
+      }
+    });
+
+    // Associate WAF with API Gateway
+    new wafv2.CfnWebACLAssociation(this, 'WebACLAssociation', {
+      resourceArn: `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`,
+      webAclArn: webAcl.attrArn
+    });
 
     // Add /upload resource and method to API Gateway
     const uploadResource = api.root.addResource('upload')
@@ -186,6 +247,23 @@ export class JSONUploadStack extends cdk.Stack {
       stringValue: githubActionsRole.roleArn,
       description: 'ARN of the GitHub Actions IAM role',
     })
+
+    // Add CloudWatch Alarms
+    new cloudwatch.Alarm(this, 'LambdaErrorAlarm', {
+      metric: processorFunction.metricErrors(),
+      threshold: 5,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: 'Lambda function errors detected'
+    });
+
+    new cloudwatch.Alarm(this, 'APIGateway4XXErrorAlarm', {
+      metric: api.metricClientError(),
+      threshold: 10,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: 'API Gateway 4XX errors detected'
+    });
 
     // Set public readonly properties
     this.uploadBucket = bucket

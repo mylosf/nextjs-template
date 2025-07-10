@@ -5,22 +5,53 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class CompleteStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    // Dead Letter Queue for failed processing
+    const dlq = new sqs.Queue(this, 'ProcessingDLQ', {
+      retentionPeriod: Duration.days(14),
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    // Main processing queue
+    const processingQueue = new sqs.Queue(this, 'ComponentGenerationQueue', {
+      deadLetterQueue: {
+        queue: dlq,
+        maxReceiveCount: 3
+      },
+      visibilityTimeout: Duration.minutes(5),
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     // S3 Bucket for generated zip files
     const generatedZipBucket = new s3.Bucket(this, 'GeneratedZipBucket', {
-      removalPolicy: RemovalPolicy.DESTROY, // NOT recommended for production
-      autoDeleteObjects: true, // NOT recommended for production
+      removalPolicy: RemovalPolicy.RETAIN, // Production: Retain bucket
+      autoDeleteObjects: false, // Production: Don't auto-delete
+      versioned: true,
+      lifecycleRules: [{
+        id: 'DeleteOldVersions',
+        noncurrentVersionExpiration: Duration.days(30)
+      }]
     });
 
     // S3 Bucket for generated components
     const componentsBucket = new s3.Bucket(this, 'ComponentsBucket', {
       bucketName: 'schiffer-comps',
-      removalPolicy: RemovalPolicy.DESTROY, // NOT recommended for production
-      autoDeleteObjects: true, // NOT recommended for production
+      removalPolicy: RemovalPolicy.RETAIN, // Production: Retain bucket
+      autoDeleteObjects: false, // Production: Don't auto-delete
+      versioned: true,
+      lifecycleRules: [{
+        id: 'TransitionToIA',
+        transitions: [{
+          storageClass: s3.StorageClass.INFREQUENT_ACCESS,
+          transitionAfter: Duration.days(30)
+        }]
+      }]
     });
 
     // Lambda Function 1: JSON Processor
@@ -80,8 +111,34 @@ export class CompleteStack extends Stack {
     const definition = processJsonTask.next(generateComponentTask);
 
     const stateMachine = new sfn.StateMachine(this, 'CompleteWorkflow', {
-      definition,
+      definitionBody: sfn.DefinitionBody.fromChainable(definition),
       stateMachineName: 'CompleteWorkflow',
+      timeout: Duration.minutes(30), // Add timeout
+    });
+
+    // Add CloudWatch Alarms
+    new cloudwatch.Alarm(this, 'StepFunctionFailureAlarm', {
+      metric: stateMachine.metricFailed(),
+      threshold: 1,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: 'Step Function execution failed'
+    });
+
+    new cloudwatch.Alarm(this, 'JsonProcessorLambdaErrorAlarm', {
+      metric: jsonProcessorLambda.metricErrors(),
+      threshold: 3,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: 'JSON Processor Lambda errors detected'
+    });
+
+    new cloudwatch.Alarm(this, 'BedrockLambdaErrorAlarm', {
+      metric: bedrockComponentGeneratorLambda.metricErrors(),
+      threshold: 3,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: 'Bedrock Component Generator Lambda errors detected'
     });
 
     new CfnOutput(this, 'CompleteWorkflowArn', {
@@ -100,6 +157,12 @@ export class CompleteStack extends Stack {
       value: componentsBucket.bucketName,
       description: 'The name of the S3 bucket where generated components are stored',
       exportName: 'ComponentsBucketName',
+    });
+
+    new CfnOutput(this, 'ComponentGenerationQueueUrl', {
+      value: processingQueue.queueUrl,
+      description: 'The URL of the SQS queue for component generation',
+      exportName: 'ComponentGenerationQueueUrl',
     });
   }
 } 
