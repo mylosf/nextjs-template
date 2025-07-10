@@ -33,6 +33,7 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [code, setCode] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userAttributes, setUserAttributes] = useState<Record<string, string> | null>(null);
@@ -123,9 +124,54 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
       toast.error("Passwords do not match.");
       return;
     }
+    if (!displayName.trim()) {
+      toast.error("Display name is required.");
+      return;
+    }
     try {
-      const { isSignUpComplete, nextStep } = await signUp({ username: email, password, options: { userAttributes: { email } } });
+      // First, create the user in Cognito
+      const { isSignUpComplete, nextStep } = await signUp({ 
+        username: email, 
+        password, 
+        options: { 
+          userAttributes: { 
+            email,
+            name: displayName.trim()
+          } 
+        } 
+      });
+      
       console.log("Sign Up Status:", isSignUpComplete, nextStep);
+      
+      // Then, call our signup API to create user in database
+      try {
+        const signupApiResponse = await fetch(`${process.env.NEXT_PUBLIC_SIGNUP_API_URL || ''}/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.toLowerCase().trim(),
+            display_name: displayName.trim(),
+            cognito_user_id: '', // Will be populated later when user confirms
+          }),
+        });
+
+        const signupData = await signupApiResponse.json();
+        
+        if (!signupApiResponse.ok) {
+          console.error('Signup API error:', signupData);
+          // Don't fail the signup process if database creation fails
+          toast.warn("Account created but there was an issue saving profile data. Please contact support if you experience issues.");
+        } else {
+          console.log('User created in database:', signupData);
+        }
+      } catch (dbError) {
+        console.error('Database signup error:', dbError);
+        // Don't fail the signup process if database creation fails
+        toast.warn("Account created but there was an issue saving profile data. Please contact support if you experience issues.");
+      }
+      
       if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
         setCurrentView("confirmSignUp");
         toast.info("Verification code sent to your email. Please confirm your account.");
@@ -284,6 +330,10 @@ export default function AuthClientPage({ userPoolId, userPoolClientId, identityP
             </CardHeader>
             <CardContent className="space-y-2">
               <form onSubmit={handleSignUp}>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-display-name">How should we call you?</Label>
+                  <Input id="signup-display-name" type="text" placeholder="Your name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+                </div>
                 <div className="space-y-1">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />

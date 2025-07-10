@@ -11,16 +11,9 @@ export async function getSSMParameterValue(name: string): Promise<string | undef
     WithDecryption: true,
   });
 
-  console.log();
   try {
     const response = await client.send(command);
-    const value = response.Parameter?.Value;
-    if (value) {
-      console.log();
-    } else {
-      console.warn();
-    }
-    return value;
+    return response.Parameter?.Value;
   } catch (error) {
     console.error('Error getting SSM parameter value:', error);
     return undefined;

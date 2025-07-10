@@ -63,56 +63,58 @@ def create_tables(database_config: Dict[str, str]) -> Dict[str, Any]:
     ddl_statements = {
         'users_table': '''
             CREATE TABLE IF NOT EXISTS users (
-                user_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                username VARCHAR(100) UNIQUE NOT NULL,
+                id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                is_active BOOLEAN DEFAULT TRUE
-            );
-        ''',
-        
-        'projects_table': '''
-            CREATE TABLE IF NOT EXISTS projects (
-                project_name VARCHAR(255) NOT NULL,
-                user_uuid UUID NOT NULL REFERENCES users(user_uuid) ON DELETE CASCADE,
-                s3_link VARCHAR(500),
+                display_name VARCHAR(100) NOT NULL,
+                cognito_user_id VARCHAR(255),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (project_name, user_uuid)
-            );
-        ''',
-        
-        'user_transactions_table': '''
-            CREATE TABLE IF NOT EXISTS user_transactions (
-                trans_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_uuid UUID NOT NULL REFERENCES users(user_uuid) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL,
-                amount DECIMAL(10,2),
-                status VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         ''',
         
         'user_events_table': '''
             CREATE TABLE IF NOT EXISTS user_events (
-                event_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_uuid UUID NOT NULL REFERENCES users(user_uuid) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                event_type VARCHAR(50) NOT NULL,
+                event_data JSONB,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        ''',
+        
+        'projects_table': '''
+            CREATE TABLE IF NOT EXISTS projects (
+                id SERIAL PRIMARY KEY,
+                project_name VARCHAR(255) NOT NULL,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                s3_link VARCHAR(500),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (project_name, user_id)
+            );
+        ''',
+        
+        'user_transactions_table': '''
+            CREATE TABLE IF NOT EXISTS user_transactions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                transaction_type VARCHAR(50) NOT NULL,
+                amount DECIMAL(10,2),
+                status VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         '''
     }
     
     # Create indexes for better performance
     index_statements = {
-        'idx_users_username': 'CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);',
         'idx_users_email': 'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);',
-        'idx_projects_user_uuid': 'CREATE INDEX IF NOT EXISTS idx_projects_user_uuid ON projects(user_uuid);',
-        'idx_user_transactions_user_uuid': 'CREATE INDEX IF NOT EXISTS idx_user_transactions_user_uuid ON user_transactions(user_uuid);',
+        'idx_users_cognito_user_id': 'CREATE INDEX IF NOT EXISTS idx_users_cognito_user_id ON users(cognito_user_id);',
+        'idx_projects_user_id': 'CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);',
+        'idx_user_transactions_user_id': 'CREATE INDEX IF NOT EXISTS idx_user_transactions_user_id ON user_transactions(user_id);',
         'idx_user_transactions_status': 'CREATE INDEX IF NOT EXISTS idx_user_transactions_status ON user_transactions(status);',
-        'idx_user_transactions_timestamp': 'CREATE INDEX IF NOT EXISTS idx_user_transactions_timestamp ON user_transactions(timestamp);',
-        'idx_user_events_user_uuid': 'CREATE INDEX IF NOT EXISTS idx_user_events_user_uuid ON user_events(user_uuid);',
-        'idx_user_events_type': 'CREATE INDEX IF NOT EXISTS idx_user_events_type ON user_events(type);',
-        'idx_user_events_timestamp': 'CREATE INDEX IF NOT EXISTS idx_user_events_timestamp ON user_events(timestamp);'
+        'idx_user_events_user_id': 'CREATE INDEX IF NOT EXISTS idx_user_events_user_id ON user_events(user_id);',
+        'idx_user_events_type': 'CREATE INDEX IF NOT EXISTS idx_user_events_type ON user_events(event_type);'
     }
     
     try:

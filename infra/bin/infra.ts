@@ -9,6 +9,8 @@ import { JSONUploadStack } from '../lib/lambdas/json-upload-stack';
 import { CompleteStack } from '../lib/lambdas/complete-stack';
 import { VPCStack } from '../lib/vpc/vpc-stack';
 import { DDLStack } from '../lib/ddl/ddl-stack';
+import { SignupStack } from '../lib/signup/signup-stack';
+import { SQLTestStack } from '../lib/sqltest/sqltest-stack';
 
 const app = new cdk.App();
 
@@ -45,6 +47,34 @@ const ddlStack = new DDLStack(app, 'SchifferDDLStack', {
 // Add dependencies to ensure VPC and data stack are created first
 ddlStack.addDependency(vpcStack);
 ddlStack.addDependency(dataStack);
+
+// Create Signup stack for user registration
+const signupStack = new SignupStack(app, 'SchifferSignupStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
+  vpcStack: vpcStack,
+  dataStack: dataStack,
+});
+
+// Add dependencies to ensure VPC and data stack are created first
+signupStack.addDependency(vpcStack);
+signupStack.addDependency(dataStack);
+
+// Create SQL Test stack for database testing
+const sqlTestStack = new SQLTestStack(app, 'SchifferSQLTestStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
+  vpcStack: vpcStack,
+  dataStack: dataStack,
+});
+
+// Add dependencies to ensure VPC and data stack are created first
+sqlTestStack.addDependency(vpcStack);
+sqlTestStack.addDependency(dataStack);
 
 // Create other stacks
 new AuthStack(app, 'SchifferAuthStack', {

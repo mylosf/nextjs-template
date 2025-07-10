@@ -4,7 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { Navbar2 } from "@/components/sections/navbar2"
+import dynamic from 'next/dynamic'
+
+const Navbar2 = dynamic(() => import("@/components/sections/navbar2").then(mod => ({ default: mod.Navbar2 })), {
+  ssr: false,
+  loading: () => <div className="fixed top-4 right-4 z-50 h-10 w-10 animate-pulse bg-gray-200 rounded-full" />
+})
 
 interface Project {
   id: string
